@@ -4,13 +4,13 @@ namespace App\Application\Diagnosis\Queries;
 
 use Illuminate\Http\UploadedFile;
 
-class AnalyzeDiagnosisQuery
+readonly class AnalyzeDiagnosisQuery
 {
     public function __construct(
-        public readonly string $description,
-        public readonly ?UploadedFile $image,
-        public readonly ?int $age,
-        public readonly ?string $gender
+        public string $description,
+        public ?UploadedFile $image,
+        public ?int $age,
+        public ?string $gender
     ) {
     }
 }

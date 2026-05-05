@@ -104,11 +104,16 @@ async function goToSection(sectionId) {
     <main class="page-shell app">
         <header class="topbar">
             <div class="brand-mark">MedAssistant AI</div>
-            <nav class="top-nav" aria-label="Main navigation">
-                <button type="button" class="nav-link" @click="goToSection('product')">Product</button>
-                <button type="button" class="nav-link" @click="goToSection('resources')">Как это работает</button>
-                <button type="button" class="nav-link" @click="goToSection('faq')">FAQ</button>
-            </nav>
+            <div class="topbar-center">
+                <nav class="top-nav" aria-label="Main navigation">
+                    <button type="button" class="nav-link" @click="goToSection('product')">Product</button>
+                    <button type="button" class="nav-link" @click="goToSection('resources')">Как это работает</button>
+                    <button type="button" class="nav-link" @click="goToSection('faq')">FAQ</button>
+                </nav>
+            </div>
+            <div class="topbar-actions">
+                <router-link to="/register" class="register-btn">Зарегистрироваться</router-link>
+            </div>
         </header>
 
         <section class="hero">
