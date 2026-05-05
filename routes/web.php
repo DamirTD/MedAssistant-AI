@@ -4,3 +4,4 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'app');
 Route::view('/analyze', 'app');
+Route::view('/{any}', 'app')->where('any', '^(?!api).*$');

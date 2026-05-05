@@ -6,19 +6,17 @@ class DiagnosisResponseMapper
 {
     public function map(
         array $decoded,
-        array $sources,
-        array $owidInsights,
-        string $domain,
-        array $triageSignals,
-        ?int $age,
-        ?string $gender,
+        DiagnosisKnowledgeContext $knowledgeContext,
+        PatientProfile $profile,
         bool $hasImage,
         bool $usedVision,
-        ?string $imageNote
+        ?string $imageNote,
+        string $aiProvider,
+        string $aiModel
     ): array {
         $confidence = $this->normalizeLevel((string) ($decoded['confidence'] ?? 'низкая'));
-        $severity = $this->normalizeSeverity((string) ($decoded['severity'] ?? ($triageSignals['severity'] ?? 'средняя')));
-        $ruleRedFlags = is_array($triageSignals['red_flags'] ?? null) ? $triageSignals['red_flags'] : [];
+        $severity = $this->normalizeSeverity((string) ($decoded['severity'] ?? $knowledgeContext->triageSignals->severity));
+        $ruleRedFlags = $knowledgeContext->triageSignals->redFlags;
         $modelRedFlags = is_array($decoded['red_flags'] ?? null) ? $decoded['red_flags'] : [];
         $mergedRedFlags = array_values(array_slice(array_unique(array_filter(array_merge($modelRedFlags, $ruleRedFlags))), 0, 6));
         $urgency = $this->resolveUrgency(
@@ -28,10 +26,10 @@ class DiagnosisResponseMapper
         );
         $confidenceScore = $this->computeConfidenceScore(
             confidence: $confidence,
-            domain: $domain,
-            sourcesCount: count($sources),
+            domain: $knowledgeContext->domain,
+            sourcesCount: count($knowledgeContext->sources),
             redFlagsCount: count($mergedRedFlags),
-            hasProfile: $age !== null || $gender !== null
+            hasProfile: $profile->hasData()
         );
 
         return [
@@ -42,18 +40,20 @@ class DiagnosisResponseMapper
             'severity' => $severity,
             'about' => (string) ($decoded['about'] ?? ''),
             'confidence_reason' => (string) ($decoded['confidence_reason'] ?? 'Оценка основана на описании симптомов и доступном контексте источников.'),
-            'possible_causes' => is_array($decoded['possible_causes'] ?? null) ? $decoded['possible_causes'] : [],
-            'care_plan' => is_array($decoded['care_plan'] ?? null) ? $decoded['care_plan'] : [],
-            'do_not_do' => is_array($decoded['do_not_do'] ?? null) ? $decoded['do_not_do'] : [],
+            'possible_causes' => $this->arrayField($decoded, 'possible_causes'),
+            'care_plan' => $this->arrayField($decoded, 'care_plan'),
+            'do_not_do' => $this->arrayField($decoded, 'do_not_do'),
             'home_care_window' => (string) ($decoded['home_care_window'] ?? 'Оцените динамику симптомов в ближайшие 24-48 часов.'),
             'red_flags' => $mergedRedFlags,
-            'followup_questions' => is_array($decoded['followup_questions'] ?? null) ? array_values(array_slice($decoded['followup_questions'], 0, 3)) : [],
-            'personalization_note' => $this->buildPersonalizationNote($age, $gender),
-            'domain' => $domain,
-            'sources' => $sources,
-            'owid_insights' => $owidInsights,
+            'followup_questions' => array_values(array_slice($this->arrayField($decoded, 'followup_questions'), 0, 3)),
+            'personalization_note' => $this->buildPersonalizationNote($profile),
+            'domain' => $knowledgeContext->domain,
+            'sources' => $knowledgeContext->sources,
+            'owid_insights' => $knowledgeContext->owidInsights,
             'disclaimer' => 'Это не медицинский диагноз. Обратитесь к врачу.',
             'source' => 'groq_ai_rag',
+            'ai_provider' => $aiProvider,
+            'ai_model' => $aiModel,
             'image_note' => $hasImage
                 ? ($usedVision
                     ? 'Изображение учтено при анализе.'
@@ -62,19 +62,24 @@ class DiagnosisResponseMapper
         ];
     }
 
-    protected function buildPersonalizationNote(?int $age, ?string $gender): ?string
+    protected function arrayField(array $payload, string $field): array
     {
-        if ($age === null && $gender === null) {
+        return is_array($payload[$field] ?? null) ? $payload[$field] : [];
+    }
+
+    protected function buildPersonalizationNote(PatientProfile $profile): ?string
+    {
+        if (! $profile->hasData()) {
             return null;
         }
 
         $parts = [];
-        if ($age !== null) {
-            $parts[] = "возраст {$age}";
+        if ($profile->age !== null) {
+            $parts[] = "возраст {$profile->age}";
         }
 
-        if ($gender !== null) {
-            $genderText = match ($gender) {
+        if ($profile->gender !== null) {
+            $genderText = match ($profile->gender) {
                 'male' => 'мужской пол',
                 'female' => 'женский пол',
                 'other' => 'указан другой пол',

@@ -2,9 +2,11 @@
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { analyzeDiagnosis } from '../services/api';
+import { useAuthStore } from '../stores/auth';
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 
 const mode = ref('symptoms');
 const description = ref(String(route.query.d ?? sessionStorage.getItem('analysis_description') ?? ''));
@@ -376,6 +378,7 @@ function stepBack(targetMode) {
 }
 
 const followupQuestions = computed(() => normalizedFollowupQuestions(result.value));
+const currentUser = computed(() => auth.state.user);
 
 restoreCachedResult();
 </script>
@@ -384,6 +387,8 @@ restoreCachedResult();
     <main class="page-shell app analyze-page">
         <section class="topbar analyze-topbar">
             <a href="/" class="brand-mark brand-home-link">MedAssistant AI</a>
+            <p v-if="currentUser" class="card-note">Пользователь: {{ currentUser.name }}</p>
+            <router-link v-if="currentUser" to="/history" class="ghost-btn topbar-new-request">История</router-link>
             <button v-if="result" type="button" class="ghost-btn topbar-new-request" @click="goHome">Новый запрос</button>
         </section>
         <p v-if="errorText" class="error">{{ errorText }}</p>
