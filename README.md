@@ -1,5 +1,7 @@
 # MVP: Классификация медицинских данных
 
+<img width="1280" height="609" alt="image" src="https://github.com/user-attachments/assets/d9430f7f-8367-421e-b96c-a6ddc749e90e" />
+
 Проект реализует простой сервис предварительной медицинской оценки:
 
 - `Laravel 13` как API и веб-слой
